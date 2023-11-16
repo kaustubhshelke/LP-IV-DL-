@@ -1,0 +1,83 @@
+# Step 1: Import required libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.models import Model
+from tensorflow.keras import optimizers
+
+# Step 2: Upload / access the dataset
+# For demonstration purposes, let's use a simple dataset. Replace this with your dataset.
+# Assume 'your_dataset.csv' is your dataset file.
+# Make sure your dataset does not have any labels for anomalies.
+# For demonstration, let's assume a dataset with normal and anomalous samples.
+
+# Replace 'your_dataset.csv' with your actual dataset path
+dataset_path = 'your_dataset.csv'
+data = pd.read_csv(dataset_path)
+
+# Step 3: Preprocess the data
+# Assuming your dataset has features in columns (adjust accordingly)
+X = data.iloc[:, 1:]  # Exclude any labels if present
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Step 4: Split the data into training and testing sets
+X_train, X_test = train_test_split(X_scaled, test_size=0.2, random_state=42)
+
+# Step 5: Build the autoencoder model
+input_dim = X_train.shape[1]  # number of features
+
+# Define the architecture
+input_layer = Input(shape=(input_dim,))
+encoding_layer = Dense(32, activation='relu')(input_layer)
+latent_representation = Dense(16, activation='relu')(encoding_layer)
+decoding_layer = Dense(32, activation='relu')(latent_representation)
+output_layer = Dense(input_dim, activation='linear')(decoding_layer)
+
+# Create the autoencoder model
+autoencoder = Model(inputs=input_layer, outputs=output_layer)
+
+# Step 6: Compile the autoencoder model
+optimizer = optimizers.Adam(lr=0.001)
+autoencoder.compile(optimizer=optimizer, loss='mean_squared_error')
+
+# Step 7: Train the autoencoder
+epochs = 50  # Adjust as needed
+batch_size = 64  # Adjust as needed
+
+history = autoencoder.fit(X_train, X_train,
+                          epochs=epochs,
+                          batch_size=batch_size,
+                          shuffle=True,
+                          validation_data=(X_test, X_test))
+
+# Step 8: Evaluate the autoencoder on the test set
+# You can use the mean squared error (MSE) as a metric for anomaly detection
+X_pred = autoencoder.predict(X_test)
+mse = np.mean(np.power(X_test - X_pred, 2), axis=1)
+
+# Step 9: Define a threshold for anomaly detection
+# You can adjust the threshold based on your specific use case and dataset characteristics.
+threshold = 0.1  # Adjust as needed
+
+# Step 10: Identify anomalies
+anomalies = mse > threshold
+
+# Step 11: Visualize results
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Autoencoder Training and Validation Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+
+# Visualize anomalies
+plt.scatter(range(len(mse)), mse, c=anomalies, cmap='coolwarm', s=5)
+plt.title('Anomalies Detected')
+plt.xlabel('Data Point Index')
+plt.ylabel('Mean Squared Error')
+plt.show()
