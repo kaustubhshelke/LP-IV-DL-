@@ -1,0 +1,60 @@
+# a. Import the necessary packages
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.utils import to_categorical
+
+# b. Load the training and testing data (MNIST)
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+# Flatten the images and normalize pixel values to be between 0 and 1
+x_train = x_train.reshape((60000, 28 * 28)).astype('float32') / 255
+x_test = x_test.reshape((10000, 28 * 28)).astype('float32') / 255
+
+# One-hot encode the labels
+y_train = to_categorical(y_train)
+y_test = to_categorical(y_test)
+
+# c. Define the network architecture using Keras
+model = Sequential()
+model.add(Dense(128, input_shape=(28 * 28,), activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(10, activation='softmax'))
+
+# d. Train the model using SGD
+model.compile(optimizer=SGD(learning_rate=0.01), 
+              loss='categorical_crossentropy', 
+              metrics=['accuracy'])
+
+history = model.fit(x_train, y_train, epochs=10, batch_size=32, validation_split=0.2)
+
+# e. Evaluate the network
+test_loss, test_acc = model.evaluate(x_test, y_test)
+print(f'Test Accuracy: {test_acc}')
+
+# f. Plot the training loss and accuracy
+plt.figure(figsize=(12, 4))
+
+# Plot training & validation accuracy values
+plt.subplot(1, 2, 1)
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Model Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend(['Train', 'Validation'], loc='upper left')
+
+# Plot training & validation loss values
+plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend(['Train', 'Validation'], loc='upper left')
+
+plt.tight_layout()
+plt.show()
